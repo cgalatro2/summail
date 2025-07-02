@@ -6,8 +6,12 @@ from googleapiclient.discovery import build
 import os
 import base64
 import re
+from email.mime.text import MIMEText
 
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+SCOPES = [
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send"
+]
 
 # Define PDT timezone (UTC-7) - summer time
 PDT = timezone(timedelta(hours=-7))
@@ -156,3 +160,13 @@ def extract_body_from_parts(parts):
                     continue
     
     return body
+
+def send_digest_email(service, to_email, subject, html_content):
+    message = MIMEText(html_content, 'html')
+    message['to'] = to_email
+    message['from'] = to_email
+    message['subject'] = subject
+    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    body = {'raw': raw}
+    sent_message = service.users().messages().send(userId='me', body=body).execute()
+    return sent_message

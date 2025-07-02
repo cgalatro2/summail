@@ -2,9 +2,8 @@ name: Daily Newsletter Digest
 
 on:
   schedule:
-    # Run daily at 5pm PST (1am UTC next day)
-    - cron: '0 1 * * *'
-  workflow_dispatch: # Allow manual triggering
+    - cron: '0 1 * * *' # 5pm PST = 1am UTC next day
+  workflow_dispatch:
 
 jobs:
   digest:

@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta, timezone
 from google.oauth2.credentials import Credentials
-from google.oauth2 import service_account
+# from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import os
 import base64
 import re
 from email.mime.text import MIMEText
+from google.auth.transport.requests import Request
 
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
@@ -19,26 +20,26 @@ PDT = timezone(timedelta(hours=-7))
 
 def get_gmail_service():
     creds = None
-    
-    # Check if we're in a CI environment (GitHub Actions)
-    if os.getenv('CI'):
-        # Use service account credentials for CI
-        if os.path.exists("service-account-key.json"):
-            creds = service_account.Credentials.from_service_account_file(
-                "service-account-key.json", scopes=SCOPES
-            )
+
+    if os.path.exists("token.json"):
+        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
         else:
-            raise Exception("Service account key not found for CI environment")
-    else:
-        # Use OAuth2 flow for local development
-        if os.path.exists("token.json"):
-            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-        if not creds or not creds.valid:
-            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-            creds = flow.run_local_server(port=0)
-            with open("token.json", "w") as token:
-                token.write(creds.to_json())
-    
+            flow = InstalledAppFlow.from_client_secrets_file(
+                "credentials.json", SCOPES
+            )
+            creds = flow.run_local_server(
+                port=0,
+                access_type="offline",
+                prompt="consent"
+            )
+        # Save token for reuse
+        with open("token.json", "w") as token:
+            token.write(creds.to_json())
+
     return build("gmail", "v1", credentials=creds)
 
 def fetch_todays_newsletters(service):

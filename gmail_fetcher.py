@@ -1,7 +1,5 @@
-from datetime import datetime, timedelta, timezone
 from google.oauth2.credentials import Credentials
 
-# from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import os
@@ -14,9 +12,6 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.send",
 ]
-
-# Define PDT timezone (UTC-7) - summer time
-PDT = timezone(timedelta(hours=-7))
 
 
 def get_gmail_service():
@@ -40,25 +35,20 @@ def get_gmail_service():
     return build("gmail", "v1", credentials=creds)
 
 
-def fetch_todays_newsletters(service):
-    # Get midnight today in PDT
-    now = datetime.now(PDT)
-    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    after = midnight.strftime("%Y/%m/%d")
-    query = f"label:Newsletters after:{after}"
-
+def fetch_unread_newsletters(service, mark_as_read=False):
+    query = "label:Newsletters is:unread"
     results = (
         service.users().messages().list(userId="me", q=query, maxResults=50).execute()
     )
-
     messages = results.get("messages", [])
     emails = []
 
     for msg in messages:
+        msg_id = msg["id"]
         msg_detail = (
             service.users()
             .messages()
-            .get(userId="me", id=msg["id"], format="full")
+            .get(userId="me", id=msg_id, format="full")
             .execute()
         )
         payload = msg_detail.get("payload", {})
@@ -107,6 +97,12 @@ def fetch_todays_newsletters(service):
 
         emails.append({"subject": subject, "from": sender, "body": body})
 
+        if mark_as_read:
+            service.users().messages().modify(
+                userId="me",
+                id=msg_id,
+                body={"removeLabelIds": ["UNREAD"]}
+            ).execute()
     return emails
 
 

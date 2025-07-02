@@ -1,9 +1,9 @@
-from gmail_fetcher import get_gmail_service, fetch_todays_newsletters, send_digest_email
+from gmail_fetcher import get_gmail_service, fetch_unread_newsletters, send_digest_email
 from summarizer import summarize_email
 
 if __name__ == "__main__":
     service = get_gmail_service()
-    emails = fetch_todays_newsletters(service)
+    emails = fetch_unread_newsletters(service, mark_as_read=True)
 
     print(f"Found {len(emails)} emails:")
     digest_html = ["<h2>Today's Newsletter Digest</h2>"]

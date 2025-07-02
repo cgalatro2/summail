@@ -2,7 +2,7 @@ name: Daily Newsletter Digest
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 5pm PST = 00:00 UTC
+    - cron: '0 15 * * *' # 8am PST = 15:00 UTC
   workflow_dispatch:
 
 jobs:

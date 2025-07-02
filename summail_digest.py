@@ -10,11 +10,11 @@ if __name__ == "__main__":
     for i, email in enumerate(emails):
         subject = email["subject"]
         sender = email["from"]
-        summary = summarize_email(email['body'])
+        # summary = summarize_email(email['body'])
         digest_html.append(
             f"<h3>{subject} <span style='font-weight:normal;'>({sender})</span></h3>"
         )
-        digest_html.append(f"<ul>" + ''.join(f"<li>{line.strip()}</li>" for line in summary.split('\n') if line.strip()) + "</ul>")
+        # digest_html.append(f"<ul>" + ''.join(f"<li>{line.strip()}</li>" for line in summary.split('\n') if line.strip()) + "</ul>")
 
     digest_html = "\n".join(digest_html)
     message = {

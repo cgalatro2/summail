@@ -13,12 +13,9 @@ def summarize_email(text):
                     "You're an email digest assistant. "
                     "Summarize in 3-7 bullets only the most important ideas, with each point concise."
                     "Avoid assistant-style intros and don't include markdown formatting like bold or italics."
-                )
+                ),
             },
-            {
-                "role": "user",
-                "content": f"{text}"
-            }
-        ]
+            {"role": "user", "content": f"{text}"},
+        ],
     )
     return response.choices[0].message.content.strip()

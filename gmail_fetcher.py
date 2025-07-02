@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from google.oauth2.credentials import Credentials
+
 # from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -11,7 +12,7 @@ from google.auth.transport.requests import Request
 
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
-    "https://www.googleapis.com/auth/gmail.send"
+    "https://www.googleapis.com/auth/gmail.send",
 ]
 
 # Define PDT timezone (UTC-7) - summer time
@@ -28,19 +29,16 @@ def get_gmail_service():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                "credentials.json", SCOPES
-            )
+            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
             creds = flow.run_local_server(
-                port=0,
-                access_type="offline",
-                prompt="consent"
+                port=0, access_type="offline", prompt="consent"
             )
         # Save token for reuse
         with open("token.json", "w") as token:
             token.write(creds.to_json())
 
     return build("gmail", "v1", credentials=creds)
+
 
 def fetch_todays_newsletters(service):
     # Get midnight today in PDT
@@ -67,12 +65,16 @@ def fetch_todays_newsletters(service):
         headers = payload.get("headers", [])
         parts = payload.get("parts", [])
 
-        subject = next((h["value"] for h in headers if h["name"] == "Subject"), "No subject")
-        sender = next((h["value"] for h in headers if h["name"] == "From"), "Unknown sender")
+        subject = next(
+            (h["value"] for h in headers if h["name"] == "Subject"), "No subject"
+        )
+        sender = next(
+            (h["value"] for h in headers if h["name"] == "From"), "Unknown sender"
+        )
 
         # Check if this is a Morning Brew email
         is_morning_brew = "morningbrew.com" in sender.lower()
-        
+
         # Extract body using different strategies
         body = ""
         if is_morning_brew:
@@ -82,13 +84,15 @@ def fetch_todays_newsletters(service):
             # For other emails, try full body extraction
             if parts:
                 body = extract_body_from_parts(parts)
-            
+
             # If no body found in parts, try the main payload
             if not body:
                 data = payload.get("body", {}).get("data", "")
                 if data:
                     try:
-                        decoded = base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+                        decoded = base64.urlsafe_b64decode(data).decode(
+                            "utf-8", errors="ignore"
+                        )
                         mime_type = payload.get("mimeType", "")
                         if mime_type == "text/plain":
                             body = decoded
@@ -96,61 +100,60 @@ def fetch_todays_newsletters(service):
                             body = extract_text_from_html(decoded)
                     except Exception:
                         pass
-            
+
             # Final fallback to snippet
             if not body:
                 body = msg_detail.get("snippet", "")
 
-        emails.append({
-            "subject": subject,
-            "from": sender,
-            "body": body
-        })
+        emails.append({"subject": subject, "from": sender, "body": body})
 
     return emails
+
 
 def extract_text_from_html(html_content):
     """Extract readable text from HTML content by removing tags and cleaning up whitespace."""
     # Remove HTML tags
-    text = re.sub(r'<[^>]+>', ' ', html_content)
+    text = re.sub(r"<[^>]+>", " ", html_content)
     # Remove extra whitespace and normalize
-    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r"\s+", " ", text)
     # Remove common email error messages
     error_patterns = [
-        r'The email did not display correctly',
-        r'Click here to view this email',
-        r'If you are having trouble viewing this email',
-        r'View this email in your browser',
-        r'Unsubscribe',
-        r'Click here to unsubscribe',
-        r'This email was sent to',
-        r'You received this email because'
+        r"The email did not display correctly",
+        r"Click here to view this email",
+        r"If you are having trouble viewing this email",
+        r"View this email in your browser",
+        r"Unsubscribe",
+        r"Click here to unsubscribe",
+        r"This email was sent to",
+        r"You received this email because",
     ]
     for pattern in error_patterns:
-        text = re.sub(pattern, '', text, flags=re.IGNORECASE)
+        text = re.sub(pattern, "", text, flags=re.IGNORECASE)
     return text.strip()
 
 
 def extract_body_from_parts(parts):
     """Recursively extract text content from email parts."""
     body = ""
-    
+
     for part in parts:
         mime_type = part.get("mimeType", "")
-        
+
         # Handle nested parts
         if part.get("parts"):
             nested_body = extract_body_from_parts(part.get("parts"))
             if nested_body:
                 body = nested_body
                 break
-        
+
         # Handle text content
         if mime_type.startswith("text/"):
             data = part.get("body", {}).get("data", "")
             if data:
                 try:
-                    decoded = base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+                    decoded = base64.urlsafe_b64decode(data).decode(
+                        "utf-8", errors="ignore"
+                    )
                     if mime_type == "text/plain":
                         body = decoded
                         break
@@ -159,15 +162,16 @@ def extract_body_from_parts(parts):
                         body = extract_text_from_html(decoded)
                 except Exception:
                     continue
-    
+
     return body
 
+
 def send_digest_email(service, to_email, subject, html_content):
-    message = MIMEText(html_content, 'html')
-    message['to'] = to_email
-    message['from'] = to_email
-    message['subject'] = subject
+    message = MIMEText(html_content, "html")
+    message["to"] = to_email
+    message["from"] = to_email
+    message["subject"] = subject
     raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
-    body = {'raw': raw}
-    sent_message = service.users().messages().send(userId='me', body=body).execute()
+    body = {"raw": raw}
+    sent_message = service.users().messages().send(userId="me", body=body).execute()
     return sent_message

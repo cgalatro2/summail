@@ -1,49 +1,83 @@
-# Summail
+# Summail - Daily Newsletter Digest
 
-Summail is a simple Python script that fetches your newsletter emails from Gmail, summarizes them using GPT, and sends you a daily digest.
+Automatically fetch and summarize your daily newsletters using Gmail API and OpenAI.
 
-## ✨ Features
+## Features
 
-- Authenticates with Gmail via desktop OAuth
-- Fetches emails from your `Newsletters` label from the previous day
-- Summarizes each email using OpenAI's GPT model
-- Sends a clean summary email to your own inbox
+- Fetches newsletters from today (midnight to current time)
+- Handles different email formats (HTML, plain text, multipart)
+- Special handling for Morning Brew emails (uses Gmail snippet)
+- Summarizes content using OpenAI GPT-4
+- Runs daily at 5pm PST via GitHub Actions
 
-## 🚀 Getting Started
+## Local Setup
 
-### 1. Clone the repo and create a virtual environment
+1. **Install dependencies:**
 
-```bash
-git clone https://github.com/yourusername/summail.git
-cd summail
-python3 -m venv venv
-source venv/bin/activate
-```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### 2. Install dependencies
+2. **Set up Gmail API credentials:**
 
-```bash
-pip install -r requirements.txt
-```
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing
+   - Enable Gmail API
+   - Create OAuth 2.0 credentials
+   - Download as `credentials.json` and place in project root
 
-### 3. Set up credentials
+3. **Set up OpenAI API key:**
 
-- Go to [Google Cloud Console](https://console.cloud.google.com/)
-- Create a project and enable the Gmail API
-- Create **OAuth 2.0 Client IDs** for a **Desktop App**
-- Download the `credentials.json` and place it in the root of this project
+   ```bash
+   export OPENAI_API_KEY="your-api-key-here"
+   ```
 
-You will also need an OpenAI API key:
+4. **Run locally:**
+   ```bash
+   python summail_digest.py
+   ```
 
-```bash
-export OPENAI_API_KEY=your-key-here
-```
+## GitHub Actions Setup
 
-### 4. Run the script
+1. **Push your code to GitHub**
 
-```bash
-python summail_main.py
-```
+2. **Set up GitHub Secrets:**
+
+   - Go to your repo → Settings → Secrets and variables → Actions
+   - Add `OPENAI_API_KEY` with your OpenAI API key
+
+3. **Set up Gmail Service Account (for CI):**
+
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a Service Account
+   - Download the JSON key file
+   - Add the entire JSON content as a GitHub secret named `GMAIL_SERVICE_ACCOUNT_KEY`
+
+4. **Update the workflow to use the service account key:**
+
+   ```yaml
+   - name: Create service account key file
+     run: echo '${{ secrets.GMAIL_SERVICE_ACCOUNT_KEY }}' > service-account-key.json
+   ```
+
+5. **The workflow will run automatically:**
+   - Daily at 5pm PST (1am UTC)
+   - Can be triggered manually via GitHub Actions tab
+
+## Gmail Labels
+
+Make sure your newsletters are labeled with "Newsletters" in Gmail for the script to find them.
+
+## Timezone
+
+The script uses PDT (Pacific Daylight Time, UTC-7). Adjust the timezone in `gmail_fetcher.py` if needed.
+
+## Files
+
+- `gmail_fetcher.py` - Gmail API integration and email processing
+- `summarizer.py` - OpenAI integration for summarization
+- `summail_digest.py` - Main script that orchestrates the process
+- `.github/workflows/daily-digest.yml` - GitHub Actions workflow
 
 ## 💠 Project Structure
 

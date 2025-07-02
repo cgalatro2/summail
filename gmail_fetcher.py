@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from google.oauth2.credentials import Credentials
+from google.oauth2 import service_account
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import os
@@ -14,13 +15,26 @@ PDT = timezone(timedelta(hours=-7))
 
 def get_gmail_service():
     creds = None
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    if not creds or not creds.valid:
-        flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-        creds = flow.run_local_server(port=0)
-        with open("token.json", "w") as token:
-            token.write(creds.to_json())
+    
+    # Check if we're in a CI environment (GitHub Actions)
+    if os.getenv('CI'):
+        # Use service account credentials for CI
+        if os.path.exists("service-account-key.json"):
+            creds = service_account.Credentials.from_service_account_file(
+                "service-account-key.json", scopes=SCOPES
+            )
+        else:
+            raise Exception("Service account key not found for CI environment")
+    else:
+        # Use OAuth2 flow for local development
+        if os.path.exists("token.json"):
+            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+        if not creds or not creds.valid:
+            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+            creds = flow.run_local_server(port=0)
+            with open("token.json", "w") as token:
+                token.write(creds.to_json())
+    
     return build("gmail", "v1", credentials=creds)
 
 def fetch_todays_newsletters(service):
@@ -29,7 +43,6 @@ def fetch_todays_newsletters(service):
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
     after = midnight.strftime("%Y/%m/%d")
     query = f"label:Newsletters after:{after}"
-    print(f"Gmail query: {query}")
 
     results = (
         service.users().messages().list(userId="me", q=query, maxResults=50).execute()

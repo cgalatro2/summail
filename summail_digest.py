@@ -17,9 +17,15 @@ if __name__ == "__main__":
     for i, email in enumerate(emails):
         subject = email["subject"]
         sender = email["from"]
+        message_id = email["message_id"]
+        thread_id = email["thread_id"]
+        
+        # Create Gmail link
+        gmail_link = f"https://mail.google.com/mail/u/0/#inbox/{message_id}"
+        
         summary = summarize_email(email['body'])
         digest_html.append(
-            f"<h3>{subject} <span style='font-weight:normal;'>({sender})</span></h3>"
+            f"<h3><a href='{gmail_link}' style='text-decoration: none; color: #1a73e8;'>{subject}</a> <span style='font-weight:normal;'>({sender})</span></h3>"
         )
         digest_html.append(f"<ul style='list-style-type: none; padding-left: 0;'>" + ''.join(f"<li>{line.strip()}</li>" for line in summary.split('\n') if line.strip()) + "</ul>")
 

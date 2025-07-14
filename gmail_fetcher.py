@@ -96,7 +96,13 @@ def fetch_unread_newsletters(service, mark_as_read=False):
             if not body:
                 body = msg_detail.get("snippet", "")
 
-        emails.append({"subject": subject, "from": sender, "body": body})
+        emails.append({
+            "subject": subject, 
+            "from": sender, 
+            "body": body, 
+            "message_id": msg_id,
+            "thread_id": msg_detail.get("threadId", "")
+        })
 
         if mark_as_read:
             service.users().messages().modify(

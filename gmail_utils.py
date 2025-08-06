@@ -115,35 +115,41 @@ def fetch_unread_newsletters(service, mark_as_read=False):
         # Check if this is a Morning Brew email
         is_morning_brew = "morningbrew.com" in sender.lower()
 
-        # Extract body using different strategies
-        body = ""
+        # Always mark as read if requested
+        if mark_as_read:
+            service.users().messages().modify(
+                userId="me", id=msg_id, body={"removeLabelIds": ["UNREAD"]}
+            ).execute()
+
+        # Skip Morning Brew emails from digest but still mark them as read
         if is_morning_brew:
-            # For Morning Brew, use snippet to avoid scrambled content
+            print(f"⏭️ Skipping Morning Brew email: {subject}")
+            continue
+
+        # Extract body using different strategies for non-Morning Brew emails
+        body = ""
+        if parts:
+            body = extract_body_from_parts(parts)
+
+        # If no body found in parts, try the main payload
+        if not body:
+            data = payload.get("body", {}).get("data", "")
+            if data:
+                try:
+                    decoded = base64.urlsafe_b64decode(data).decode(
+                        "utf-8", errors="ignore"
+                    )
+                    mime_type = payload.get("mimeType", "")
+                    if mime_type == "text/plain":
+                        body = decoded
+                    elif mime_type == "text/html":
+                        body = extract_text_from_html(decoded)
+                except Exception:
+                    pass
+
+        # Final fallback to snippet
+        if not body:
             body = msg_detail.get("snippet", "")
-        else:
-            # For other emails, try full body extraction
-            if parts:
-                body = extract_body_from_parts(parts)
-
-            # If no body found in parts, try the main payload
-            if not body:
-                data = payload.get("body", {}).get("data", "")
-                if data:
-                    try:
-                        decoded = base64.urlsafe_b64decode(data).decode(
-                            "utf-8", errors="ignore"
-                        )
-                        mime_type = payload.get("mimeType", "")
-                        if mime_type == "text/plain":
-                            body = decoded
-                        elif mime_type == "text/html":
-                            body = extract_text_from_html(decoded)
-                    except Exception:
-                        pass
-
-            # Final fallback to snippet
-            if not body:
-                body = msg_detail.get("snippet", "")
 
         emails.append(
             {
@@ -154,11 +160,6 @@ def fetch_unread_newsletters(service, mark_as_read=False):
                 "thread_id": msg_detail.get("threadId", ""),
             }
         )
-
-        if mark_as_read:
-            service.users().messages().modify(
-                userId="me", id=msg_id, body={"removeLabelIds": ["UNREAD"]}
-            ).execute()
     return emails
 
 

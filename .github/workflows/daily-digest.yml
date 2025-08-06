@@ -27,5 +27,6 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           TOKEN_JSON_B64: ${{ secrets.TOKEN_JSON_B64 }}
+          GH_PAT: ${{ secrets.GH_PAT }}
           GITHUB_ACTIONS: true
         run: python summail_digest.py

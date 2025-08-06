@@ -23,13 +23,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create service account key file
-        run: echo '${{ secrets.SERVICE_ACCOUNT_KEY }}' > service-account-key.json
-
-      - name: Decode token.json
-        run: echo '${{ secrets.TOKEN_JSON_B64 }}' | base64 -d > token.json
-
       - name: Run newsletter digest
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TOKEN_JSON_B64: ${{ secrets.TOKEN_JSON_B64 }}
+          GITHUB_ACTIONS: true
         run: python summail_digest.py

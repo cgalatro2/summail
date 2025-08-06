@@ -46,19 +46,16 @@ Automatically fetch and summarize your daily newsletters using Gmail API and Ope
    - Go to your repo → Settings → Secrets and variables → Actions
    - Add `OPENAI_API_KEY` with your OpenAI API key
 
-3. **Set up Gmail Service Account (for CI):**
+3. **Set up Gmail OAuth2 Token:**
 
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a Service Account
-   - Download the JSON key file
-   - Add the entire JSON content as a GitHub secret named `GMAIL_SERVICE_ACCOUNT_KEY`
+   - Run the script locally first to generate `token.json`
+   - Encode the token.json file: `base64 -i token.json`
+   - Add the base64-encoded content as a GitHub secret named `TOKEN_JSON_B64`
 
-4. **Update the workflow to use the service account key:**
+4. **The workflow uses environment variables directly:**
 
-   ```yaml
-   - name: Create service account key file
-     run: echo '${{ secrets.GMAIL_SERVICE_ACCOUNT_KEY }}' > service-account-key.json
-   ```
+   The workflow automatically loads the token from the `TOKEN_JSON_B64` secret
+   and uses it as an environment variable, eliminating the need for file-based secrets.
 
 5. **The workflow will run automatically:**
    - Daily at 5pm PST (1am UTC)
@@ -74,19 +71,20 @@ The script uses PDT (Pacific Daylight Time, UTC-7). Adjust the timezone in `gmai
 
 ## Files
 
-- `gmail_fetcher.py` - Gmail API integration and email processing
+- `gmail_utils.py` - Gmail API integration and email processing
 - `summarizer.py` - OpenAI integration for summarization
 - `summail_digest.py` - Main script that orchestrates the process
+- `update_token_secret.py` - Updates GitHub secrets with new tokens
 - `.github/workflows/daily-digest.yml` - GitHub Actions workflow
 
 ## 💠 Project Structure
 
 ```
 summail/
-├── summail_main.py          # Entry point
-├── gmail_fetcher.py         # Logic to fetch emails
+├── summail_digest.py        # Main entry point
+├── gmail_utils.py           # Gmail API integration
 ├── summarizer.py            # Summarizes text via OpenAI
-├── email_sender.py          # Sends the summary email
+├── update_token_secret.py   # GitHub secrets management
 ├── requirements.txt
 └── credentials.json         # (gitignored) Google API OAuth credentials
 ```

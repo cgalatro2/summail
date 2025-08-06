@@ -5,7 +5,7 @@ import os
 
 GITHUB_REPO = "cgalatro2/summail"
 GITHUB_SECRET_NAME = "TOKEN_JSON_B64"
-GITHUB_PAT = os.environ["GITHUB_PAT"]
+GITHUB_PAT = os.environ["GH_PAT"]
 
 
 def update_token_secret():

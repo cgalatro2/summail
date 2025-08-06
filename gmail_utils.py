@@ -7,6 +7,7 @@ from update_token_secret import update_token_secret
 from format_helpers import extract_text_from_html, extract_body_from_parts
 import os
 import base64
+import json
 
 SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
@@ -18,27 +19,54 @@ SCOPES = [
 def get_gmail_service():
     creds = None
 
-    if os.path.exists("token.json"):
-        creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-        print(f"🔐 Loaded token.json")
-        print(f"🔄 Refresh token exists? {'Yes' if creds.refresh_token else 'No'}")
-        if creds.valid:
-            print(f"✅ Token valid")
-        else:
-            print(f"⚠️ Token expired")
+    # Check if we're in GitHub Actions environment
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        # Use environment variables for GitHub Actions
+        token_json_b64 = os.getenv("TOKEN_JSON_B64")
+        if token_json_b64:
+            try:
+                token_json = base64.b64decode(token_json_b64).decode("utf-8")
+                creds = Credentials.from_authorized_user_info(json.loads(token_json), SCOPES)
+                print(f"🔐 Loaded credentials from environment variable")
+                print(f"🔄 Refresh token exists? {'Yes' if creds.refresh_token else 'No'}")
+                if creds.valid:
+                    print(f"✅ Token valid")
+                else:
+                    print(f"⚠️ Token expired")
+            except Exception as e:
+                print(f"❌ Failed to load credentials from environment: {e}")
+                return None
+    else:
+        # Local development - use files
+        if os.path.exists("token.json"):
+            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+            print(f"🔐 Loaded token.json")
+            print(f"🔄 Refresh token exists? {'Yes' if creds.refresh_token else 'No'}")
+            if creds.valid:
+                print(f"✅ Token valid")
+            else:
+                print(f"⚠️ Token expired")
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             print("🔄 Attempting token refresh...")
-            creds.refresh(Request())
-            print("✅ Token refresh succeeded.")
+            try:
+                creds.refresh(Request())
+                print("✅ Token refresh succeeded.")
+            except Exception as e:
+                print(f"❌ Token refresh failed: {e}")
+                return None
         else:
             print("🧾 Starting new auth flow...")
-            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-            creds = flow.run_local_server(
-                port=0, access_type="offline", prompt="consent"
-            )
-            print("✅ New creds acquired via consent flow.")
+            if os.path.exists("credentials.json"):
+                flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+                creds = flow.run_local_server(
+                    port=0, access_type="offline", prompt="consent"
+                )
+                print("✅ New creds acquired via consent flow.")
+            else:
+                print("❌ credentials.json not found")
+                return None
 
         # Decide how to persist token.json
         if os.getenv("GITHUB_ACTIONS") == "true":

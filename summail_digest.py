@@ -12,7 +12,7 @@ if __name__ == "__main__":
     service = get_gmail_service()
     emails = fetch_unread_newsletters(service, mark_as_read=True)
 
-    print(f"Found {len(emails)} emails:")
+    print(f"Found {len(emails)} emails")
     digest_html = ["<h2>Today's Newsletter Digest</h2>"]
     for i, email in enumerate(emails):
         subject = email["subject"]

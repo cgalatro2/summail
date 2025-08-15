@@ -2,18 +2,25 @@ from nacl import public
 import base64
 import requests
 import os
+import json
 
 GITHUB_REPO = "cgalatro2/summail"
 GITHUB_SECRET_NAME = "TOKEN_JSON_B64"
 GITHUB_PAT = os.environ["GH_PAT"]
 
 
-def update_token_secret():
+def update_token_secret(creds=None):
     print("🔐 Uploading new token.json to GitHub secret...")
 
-    # Read and encode token.json
-    with open("token.json", "rb") as f:
-        encoded = base64.b64encode(f.read()).decode("utf-8")
+    # Use provided credentials or read from file
+    if creds:
+        # Use the refreshed credentials directly
+        token_json = creds.to_json()
+        encoded = base64.b64encode(token_json.encode("utf-8")).decode("utf-8")
+    else:
+        # Fallback to reading from file (for local development)
+        with open("token.json", "rb") as f:
+            encoded = base64.b64encode(f.read()).decode("utf-8")
 
     # Get public key
     headers = {"Authorization": f"Bearer {GITHUB_PAT}"}

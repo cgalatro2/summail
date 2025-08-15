@@ -70,12 +70,15 @@ def get_gmail_service():
 
         # Decide how to persist token.json
         if os.getenv("GITHUB_ACTIONS") == "true":
-            print("🏗 Detected GitHub Actions environment - uploading to GitHub Secret")
-            try:
-                update_token_secret()
-                print("✅ Updated token secret")
-            except Exception as e:
-                print(f"❌ Failed to update GitHub secret: {e}")
+            print("🏗 Detected GitHub Actions environment")
+            if os.getenv("GH_PAT"):
+                try:
+                    update_token_secret(creds)
+                    print("✅ Updated token secret")
+                except Exception as e:
+                    print(f"❌ Failed to update GitHub secret: {e}")
+            else:
+                print("⚠️ Skipping GitHub secret update (GH_PAT not available)")
         else:
             print("💾 Writing token.json locally")
             with open("token.json", "w") as token:

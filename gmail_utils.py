@@ -68,22 +68,21 @@ def get_gmail_service():
                 print("❌ credentials.json not found")
                 return None
 
-        # Decide how to persist token.json
-        if os.getenv("GITHUB_ACTIONS") == "true":
-            print("🏗 Detected GitHub Actions environment")
-            if os.getenv("GH_PAT"):
-                try:
-                    update_token_secret(creds)
-                    print("✅ Updated token secret")
-                except Exception as e:
-                    print(f"❌ Failed to update GitHub secret: {e}")
-            else:
-                print("⚠️ Skipping GitHub secret update (GH_PAT not available)")
-        else:
-            print("💾 Writing token.json locally")
-            with open("token.json", "w") as token:
-                token.write(creds.to_json())
-                print("✅ token.json updated")
+    # Persist token based on environment
+    if os.getenv("GITHUB_ACTIONS") == "true" and os.getenv("GH_PAT"):
+        # GitHub Actions: Update secret
+        try:
+            token_json_str = creds.to_json()
+            update_token_secret(token_json_str)
+            print("✅ Updated token secret")
+        except Exception as e:
+            print(f"❌ Failed to update GitHub secret: {e}")
+    else:
+        # Local development: Write to file
+        print("💾 Writing token.json locally")
+        with open("token.json", "w") as token:
+            token.write(creds.to_json())
+            print("✅ token.json updated")
 
     return build("gmail", "v1", credentials=creds)
 
